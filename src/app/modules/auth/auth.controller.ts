@@ -8,8 +8,8 @@ import { AuthService } from "./auth.service";
 
 //! customer User Create
 
-const createNewUserForCustomer = catchAsync(async (req: Request, res: Response) => {
-  const result = await AuthService.createNewUserForCustomer(req.body);
+const createNewUser = catchAsync(async (req: Request, res: Response) => {
+  const result = await AuthService.createNewUser(req.body);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -18,15 +18,15 @@ const createNewUserForCustomer = catchAsync(async (req: Request, res: Response) 
     data: result,
   });
 });
-//! super admin User Create
+//! other  User Create
 
-const createSuperAdmin = catchAsync(async (req: Request, res: Response) => {
-  const result = await AuthService.createSuperAdmin(req.body);
+const createOtherUser = catchAsync(async (req: Request, res: Response) => {
+  const result = await AuthService.createOtherUser(req.body);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Super Admin created successfully!",
+    message: "User created successfully!",
     data: result,
   });
 });
@@ -79,8 +79,8 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const AuthController = {
-  createNewUserForCustomer,
+  createNewUser,
   userLogin,
   refreshToken,
-  createSuperAdmin,
+  createOtherUser,
 };

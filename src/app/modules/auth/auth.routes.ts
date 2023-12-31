@@ -6,9 +6,11 @@ import validateRequest from "../../middlewares/validateRequest";
 import { AuthValidation } from "./auth.validation";
 const router = express.Router();
 // ! customer sign up
-router.post("/customer/sign-up", validateRequest(AuthValidation.createUser), AuthController.createNewUserForCustomer);
-//! super  admin sign up
-router.post("/super-admin/sign-up", auth(UserRoles.SUPERADMIN), validateRequest(AuthValidation.createUser), AuthController.createSuperAdmin);
+router.post("/sign-up", validateRequest(AuthValidation.createUser), AuthController.createNewUser);
+
+// ! other user creation
+router.post("/other/create-user", validateRequest(AuthValidation.createOtherUser), AuthController.createNewUser);
+
 // ! UserLogin
 router.post("/login", validateRequest(AuthValidation.loginUser), AuthController.userLogin);
 

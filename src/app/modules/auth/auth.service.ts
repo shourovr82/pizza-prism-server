@@ -6,13 +6,13 @@ import config from "../../../config";
 import ApiError from "../../../errors/ApiError";
 import { jwtHelpers } from "../../../helpers/jwtHelpers";
 import prisma from "../../../shared/prisma";
-import { ILoginUserResponse, IRefreshTokenResponse, IUserCreate, IUserLogin } from "./auth.interface";
+import { ILoginUserResponse, IRefreshTokenResponse, IUserCreate, IUserCreateForAdmin, IUserLogin } from "./auth.interface";
 import { UserRoles, UserStatus } from "@prisma/client";
 import { userFindUnique } from "./auth.utils";
 
 //! customer User Create
 
-const createNewUserForCustomer = async (payload: IUserCreate) => {
+const createNewUser = async (payload: IUserCreate) => {
   const { password, email } = payload;
   const hashedPassword = await bcrypt.hash(password, Number(config.bcrypt_salt_rounds));
 
@@ -32,67 +32,7 @@ const createNewUserForCustomer = async (payload: IUserCreate) => {
       throw new ApiError(httpStatus.BAD_REQUEST, "User creation failed");
     }
 
-    const tenantData: any = {
-      firstName: payload.firstName,
-      lastName: payload.lastName,
-      user: {
-        connect: {
-          userId: createdUser.userId,
-        },
-      },
-      // profileImage: payload?.profileImage,
-    };
-
-    const tenantUser = await transactionClient.customer.create({
-      data: tenantData,
-      select: {
-        firstName: true,
-        lastName: true,
-        customerId: true,
-        userId: true,
-        user: {
-          select: {
-            email: true,
-            role: true,
-            userStatus: true,
-          },
-        },
-      },
-    });
-
-    if (!tenantUser) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Tenant creation failed");
-    }
-
-    return tenantUser;
-  });
-
-  return newUser;
-};
-
-//! super admin User Create
-
-const createSuperAdmin = async (payload: IUserCreate) => {
-  const { password, email, userStatus } = payload;
-  const hashedPassword = await bcrypt.hash(password, Number(config.bcrypt_salt_rounds));
-
-  const result = await prisma.$transaction(async (transactionClient) => {
-    await userFindUnique(email, transactionClient);
-
-    const createdUser = await transactionClient.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        role: UserRoles.SUPERADMIN,
-        userStatus,
-      },
-    });
-
-    if (!createdUser) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "User creation failed");
-    }
-
-    const adminUser = await transactionClient.superAdmin.create({
+    const newProfile = await transactionClient.profile.create({
       data: {
         firstName: payload.firstName,
         lastName: payload.lastName,
@@ -105,8 +45,8 @@ const createSuperAdmin = async (payload: IUserCreate) => {
       select: {
         firstName: true,
         lastName: true,
+        profileId: true,
         userId: true,
-        superAdminId: true,
         user: {
           select: {
             email: true,
@@ -117,14 +57,70 @@ const createSuperAdmin = async (payload: IUserCreate) => {
       },
     });
 
-    if (!adminUser) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Super Admin creation failed");
+    if (!newProfile) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Profile creation failed");
     }
 
-    return adminUser;
+    return newProfile;
   });
 
-  return result;
+  return newUser;
+};
+//! other User Create
+
+const createOtherUser = async (payload: IUserCreateForAdmin) => {
+  const { password, email, role } = payload;
+  const hashedPassword = await bcrypt.hash(password, Number(config.bcrypt_salt_rounds));
+
+  const newUser = await prisma.$transaction(async (transactionClient) => {
+    await userFindUnique(email, transactionClient);
+
+    const createdUser = await transactionClient.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        role,
+        userStatus: UserStatus.ACTIVE,
+      },
+    });
+
+    if (!createdUser) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "User creation failed");
+    }
+
+    const newProfile = await transactionClient.profile.create({
+      data: {
+        firstName: payload.firstName,
+        lastName: payload.lastName,
+        user: {
+          connect: {
+            userId: createdUser.userId,
+          },
+        },
+      },
+      select: {
+        firstName: true,
+        lastName: true,
+        profileId: true,
+        userId: true,
+        user: {
+          select: {
+            email: true,
+            role: true,
+            userStatus: true,
+          },
+        },
+      },
+    });
+
+    if (!newProfile) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Profile creation failed");
+    }
+
+    return newProfile;
+  });
+
+  return newUser;
 };
 
 //login
@@ -136,20 +132,7 @@ const userLogin = async (loginData: IUserLogin): Promise<ILoginUserResponse> => 
       email,
     },
     include: {
-      customer: {
-        select: {
-          firstName: true,
-          lastName: true,
-          customerId: true,
-        },
-      },
-      superAdmin: {
-        select: {
-          firstName: true,
-          lastName: true,
-          superAdminId: true,
-        },
-      },
+      profile: true,
     },
   });
 
@@ -163,18 +146,18 @@ const userLogin = async (loginData: IUserLogin): Promise<ILoginUserResponse> => 
     throw new ApiError(httpStatus.UNAUTHORIZED, "Password is incorrect !!");
   }
 
-  const { userId, customer, superAdmin, role, userStatus, email: loggedInEmail } = isUserExist;
+  const { userId, profile, role, userStatus, email: loggedInEmail } = isUserExist;
 
   // create access token & refresh token
   const accessToken = jwtHelpers.createToken(
     {
       userId,
       role,
-      profileId: customer?.customerId || superAdmin?.superAdminId,
+      profileId: profile?.profileId,
       email: loggedInEmail,
       userStatus,
-      firstName: customer?.firstName || superAdmin?.firstName,
-      lastName: customer?.lastName || superAdmin?.lastName,
+      firstName: profile?.firstName,
+      lastName: profile?.lastName,
     },
     config.jwt.secret as Secret,
     config.jwt.expires_in as string,
@@ -183,11 +166,11 @@ const userLogin = async (loginData: IUserLogin): Promise<ILoginUserResponse> => 
     {
       userId,
       role,
-      profileId: customer?.customerId || superAdmin?.superAdminId,
+      profileId: profile?.profileId,
       email: loggedInEmail,
       userStatus,
-      firstName: customer?.firstName || superAdmin?.firstName,
-      lastName: customer?.lastName || superAdmin?.lastName,
+      firstName: profile?.firstName,
+      lastName: profile?.lastName,
     },
     config.jwt.refresh_secret as Secret,
     config.jwt.refresh_expires_in as string,
@@ -218,37 +201,24 @@ const refreshToken = async (token: string): Promise<IRefreshTokenResponse> => {
       userId,
     },
     include: {
-      customer: {
-        select: {
-          firstName: true,
-          lastName: true,
-          customerId: true,
-        },
-      },
-      superAdmin: {
-        select: {
-          firstName: true,
-          lastName: true,
-          superAdminId: true,
-        },
-      },
+      profile: true,
     },
   });
   if (!isUserExist) {
     throw new ApiError(httpStatus.NOT_FOUND, "User does not exists!!");
   }
 
-  const { customer, superAdmin, role, userStatus, email: loggedInEmail } = isUserExist;
+  const { profile, role, userStatus, email: loggedInEmail } = isUserExist;
   // generate new token
   const newAccessToken = jwtHelpers.createToken(
     {
       userId,
       role,
-      profileId: customer?.customerId || superAdmin?.superAdminId,
+      profileId: profile?.profileId,
       email: loggedInEmail,
       userStatus,
-      firstName: customer?.firstName || superAdmin?.firstName,
-      lastName: customer?.lastName || superAdmin?.lastName,
+      firstName: profile?.firstName,
+      lastName: profile?.lastName,
     },
     config.jwt.secret as Secret,
     config.jwt.expires_in as string,
@@ -259,9 +229,4 @@ const refreshToken = async (token: string): Promise<IRefreshTokenResponse> => {
   };
 };
 
-export const AuthService = {
-  createNewUserForCustomer,
-  createSuperAdmin,
-  userLogin,
-  refreshToken,
-};
+export const AuthService = { createNewUser, userLogin, refreshToken, createOtherUser };

@@ -1,5 +1,5 @@
-import { NextFunction, Request, Response } from 'express';
-import { infoLogger } from '../../shared/logger';
+import { NextFunction, Request, Response } from "express";
+import { infoLogger } from "../../shared/logger";
 
 const routeInfoMessage = () => {
   return async (req: Request, res: Response, next: NextFunction) => {
