@@ -1,10 +1,10 @@
-import { NextFunction, Request, Response } from 'express';
-import httpStatus from 'http-status';
-import { JwtPayload, Secret, TokenExpiredError } from 'jsonwebtoken'; // Import TokenExpiredError
-import config from '../../config';
-import ApiError from '../../errors/ApiError';
-import { jwtHelpers } from '../../helpers/jwtHelpers';
-import prisma from '../../shared/prisma';
+import { NextFunction, Request, Response } from "express";
+import httpStatus from "http-status";
+import { JwtPayload, Secret, TokenExpiredError } from "jsonwebtoken";
+import config from "../../config";
+import ApiError from "../../errors/ApiError";
+import { jwtHelpers } from "../../helpers/jwtHelpers";
+import prisma from "../../shared/prisma";
 
 const auth = (...requiredRoles: string[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -12,17 +12,11 @@ const auth = (...requiredRoles: string[]) => {
       const token = req.headers.authorization;
 
       if (!token) {
-        throw new ApiError(
-          httpStatus.UNAUTHORIZED,
-          'You are not an authorized user'
-        );
+        throw new ApiError(httpStatus.UNAUTHORIZED, "You are not an authorized user");
       }
 
       try {
-        const verifiedUser: JwtPayload = jwtHelpers.verifyToken(
-          token,
-          config.jwt.secret as Secret
-        );
+        const verifiedUser: JwtPayload = jwtHelpers.verifyToken(token, config.jwt.secret as Secret);
 
         const isUserExist = await prisma.user.findUnique({
           where: {
@@ -33,19 +27,14 @@ const auth = (...requiredRoles: string[]) => {
             userId: true,
             role: true,
             userStatus: true,
-            tenant: {
+            customer: {
               select: {
-                tenantId: true,
+                customerId: true,
               },
             },
-            propertyOwner: {
+            superAdmin: {
               select: {
-                propertyOwnerId: true,
-              },
-            },
-            serviceProvider: {
-              select: {
-                serviceProviderId: true,
+                superAdminId: true,
               },
             },
           },
@@ -53,10 +42,7 @@ const auth = (...requiredRoles: string[]) => {
 
         // If the user doesn't exist, they are not a valid user.
         if (!isUserExist) {
-          throw new ApiError(
-            httpStatus.UNAUTHORIZED,
-            'You are not a valid user'
-          );
+          throw new ApiError(httpStatus.UNAUTHORIZED, "You are not a valid user");
         }
 
         const loggedInUserDetails = {
@@ -64,30 +50,21 @@ const auth = (...requiredRoles: string[]) => {
           userId: isUserExist?.userId,
           role: isUserExist?.role,
           userStatus: isUserExist?.userStatus,
-          profileId:
-            isUserExist?.tenant?.tenantId ||
-            isUserExist?.propertyOwner?.propertyOwnerId ||
-            isUserExist?.serviceProvider?.serviceProviderId,
+          profileId: isUserExist?.customer?.customerId || isUserExist?.superAdmin?.superAdminId,
         };
 
         req.user = loggedInUserDetails;
 
-        if (
-          requiredRoles.length &&
-          !requiredRoles.includes(verifiedUser.role)
-        ) {
-          const rolesString = requiredRoles.join(', ');
-          throw new ApiError(
-            httpStatus.FORBIDDEN,
-            `Access Forbidden. Required role(s): ${rolesString}`
-          );
+        if (requiredRoles.length && !requiredRoles.includes(verifiedUser.role)) {
+          const rolesString = requiredRoles.join(", ");
+          throw new ApiError(httpStatus.FORBIDDEN, `Access Forbidden. Required role(s): ${rolesString}`);
         }
 
         next();
       } catch (error) {
         if (error instanceof TokenExpiredError) {
           // If the token is expired, return a 403 Forbidden status code
-          throw new ApiError(httpStatus.FORBIDDEN, 'Token has expired');
+          throw new ApiError(httpStatus.FORBIDDEN, "Token has expired");
         } else {
           next(error);
         }

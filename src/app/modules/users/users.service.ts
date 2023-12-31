@@ -6,9 +6,9 @@ import config from "../../../config";
 import ApiError from "../../../errors/ApiError";
 import { jwtHelpers } from "../../../helpers/jwtHelpers";
 import prisma from "../../../shared/prisma";
-import { ILoginUserResponse, IRefreshTokenResponse, IUserCreate, IUserLogin } from "./auth.interface";
+import { ILoginUserResponse, IRefreshTokenResponse, IUserCreate, IUserLogin } from "./users.interface";
 import { UserRoles, UserStatus } from "@prisma/client";
-import { userFindUnique } from "./auth.utils";
+import { userFindUnique } from "./users.utils";
 
 //! customer User Create
 

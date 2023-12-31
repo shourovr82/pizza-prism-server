@@ -3,8 +3,8 @@ import httpStatus from "http-status";
 import config from "../../../config";
 import catchAsync from "../../../shared/catchAsync";
 import sendResponse from "../../../shared/sendResponse";
-import { IRefreshTokenResponse } from "./auth.interface";
-import { AuthService } from "./auth.service";
+import { IRefreshTokenResponse } from "./users.interface";
+import { AuthService } from "./users.service";
 
 //! customer User Create
 
@@ -78,7 +78,7 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-export const AuthController = {
+export const UserCustomersController = {
   createNewUserForCustomer,
   userLogin,
   refreshToken,
