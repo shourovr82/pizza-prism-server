@@ -9,12 +9,12 @@ const router = express.Router();
 router.post("/sign-up", validateRequest(AuthValidation.createUser), AuthController.createNewUser);
 
 // ! other user creation
-router.post("/other/create-user", validateRequest(AuthValidation.createOtherUser), AuthController.createNewUser);
+router.post("/other/create-user", auth(UserRoles.SUPERADMIN), validateRequest(AuthValidation.createOtherUser), AuthController.createOtherUser);
 
 // ! UserLogin
 router.post("/login", validateRequest(AuthValidation.loginUser), AuthController.userLogin);
 
 // ! refresh token
-router.post("/refresh-token", auth(UserRoles.SUPERADMIN, UserRoles.CUSTOMER, UserRoles.CASHIER, UserRoles.DELIVERYMAN), AuthController.refreshToken);
+router.post("/refresh-token", AuthController.refreshToken);
 
 export const AuthRoutes = router;

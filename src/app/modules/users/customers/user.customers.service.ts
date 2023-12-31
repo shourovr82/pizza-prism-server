@@ -4,13 +4,13 @@
 import prisma from "../../../../shared/prisma";
 import { IPaginationOptions } from "../../../../interfaces/pagination";
 import { IGenericResponse } from "../../../../interfaces/common";
-import { Customer, Prisma } from "@prisma/client";
+import { Prisma, Profile } from "@prisma/client";
 import { ICustomerFilterRequest } from "./user.customers.interfaces";
 import { paginationHelpers } from "../../../../helpers/paginationHelper";
 import { customersRelationalFields, customersRelationalFieldsMapper, customersSearchableFields } from "./user.customers.constants";
 
 //! GET ALL CUSTOMERS
-const getAllCustomers = async (filters: ICustomerFilterRequest, options: IPaginationOptions): Promise<IGenericResponse<Customer[]>> => {
+const getAllCustomers = async (filters: ICustomerFilterRequest, options: IPaginationOptions): Promise<IGenericResponse<Profile[]>> => {
   const { limit, page, skip } = paginationHelpers.calculatePagination(options);
 
   const { searchTerm, ...filterData } = filters;
@@ -49,9 +49,9 @@ const getAllCustomers = async (filters: ICustomerFilterRequest, options: IPagina
   }
 
   // @ts-ignore
-  const whereConditions: Prisma.CustomerWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
+  const whereConditions: Prisma.ProfileWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
 
-  const result = await prisma.customer.findMany({
+  const result = await prisma.profile.findMany({
     include: {
       user: {
         select: {
@@ -61,7 +61,14 @@ const getAllCustomers = async (filters: ICustomerFilterRequest, options: IPagina
         },
       },
     },
-    where: whereConditions,
+    where: {
+      user: {
+        role: {
+          equals: "CUSTOMER",
+        },
+      },
+      ...whereConditions,
+    },
     skip,
     take: limit,
     orderBy:
@@ -71,8 +78,15 @@ const getAllCustomers = async (filters: ICustomerFilterRequest, options: IPagina
             createdAt: "desc",
           },
   });
-  const total = await prisma.customer.count({
-    where: whereConditions,
+  const total = await prisma.profile.count({
+    where: {
+      ...whereConditions,
+      user: {
+        role: {
+          equals: "CUSTOMER",
+        },
+      },
+    },
   });
   const totalPage = Math.ceil(total / limit);
   return {
