@@ -5,6 +5,7 @@ import catchAsync from "../../../shared/catchAsync";
 import sendResponse from "../../../shared/sendResponse";
 import { IRefreshTokenResponse } from "./auth.interface";
 import { AuthService } from "./auth.service";
+import ApiError from "../../../errors/ApiError";
 
 //! customer User Create
 
@@ -60,20 +61,24 @@ const userLogin = catchAsync(async (req: Request, res: Response) => {
 const refreshToken = catchAsync(async (req: Request, res: Response) => {
   const { refreshToken } = req.cookies;
 
+  if (!refreshToken) {
+    throw new ApiError(httpStatus.NOT_ACCEPTABLE, "Refresh Token Not Found");
+  }
+
   const result = await AuthService.refreshToken(refreshToken);
 
   //! set refresh token into cookie
-  // const cookieOptions = {
-  //   secure: config.env === 'production',
-  //   httpOnly: true,
-  // };
-  // res.cookie('refreshToken', refreshToken, cookieOptions);
+  const cookieOptions = {
+    secure: config.env === "production",
+    httpOnly: true,
+  };
+  res.cookie("refreshToken", refreshToken, cookieOptions);
 
   // ! sending response
   sendResponse<IRefreshTokenResponse>(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "User Logged in successfully !",
+    message: "Refresh Token Generated in successfully !",
     data: result,
   });
 });

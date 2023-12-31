@@ -27,14 +27,11 @@ const auth = (...requiredRoles: string[]) => {
             userId: true,
             role: true,
             userStatus: true,
-            customer: {
+            profile: {
               select: {
-                customerId: true,
-              },
-            },
-            superAdmin: {
-              select: {
-                superAdminId: true,
+                firstName: true,
+                lastName: true,
+                profileId: true,
               },
             },
           },
@@ -45,19 +42,17 @@ const auth = (...requiredRoles: string[]) => {
           throw new ApiError(httpStatus.UNAUTHORIZED, "You are not a valid user");
         }
 
-        const loggedInUserDetails = {
+        req.user = {
           email: isUserExist?.email,
           userId: isUserExist?.userId,
           role: isUserExist?.role,
           userStatus: isUserExist?.userStatus,
-          profileId: isUserExist?.customer?.customerId || isUserExist?.superAdmin?.superAdminId,
+          profileId: isUserExist?.profile?.profileId,
         };
-
-        req.user = loggedInUserDetails;
 
         if (requiredRoles.length && !requiredRoles.includes(verifiedUser.role)) {
           const rolesString = requiredRoles.join(", ");
-          throw new ApiError(httpStatus.FORBIDDEN, `Access Forbidden. Required role(s): ${rolesString}`);
+          throw new ApiError(httpStatus.UNAUTHORIZED, `Access Forbidden. Required role(s): ${rolesString}`);
         }
 
         next();

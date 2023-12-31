@@ -9,20 +9,15 @@ import routeInfoMessage from "../../middlewares/routeInfoMessage";
 const router = express.Router();
 
 //! GET ALL CUSTOMERS
-router.get("/customers/get-all-customers", auth(UserRoles.SUPERADMIN), UserCustomersController.getAllCustomers);
-//! UPDATE CUSTOMER DETAILS
-router.patch(
-  "/customers/update",
-  routeInfoMessage(),
-  auth(UserRoles.SUPERADMIN),
-  (req: Request, res: Response, next: NextFunction) => {
-    req.body = UserValidation.updateProfile.parse(JSON.parse(req.body.data));
-    return UsersController.getAllUsers(req, res, next);
-  },
-  // UsersController,
-);
+router.get("/customers/get-all-customers", routeInfoMessage(), auth(UserRoles.SUPERADMIN), UserCustomersController.getAllCustomers);
 
 //! GET ALL USERS
-router.get("/get-all-users", auth(UserRoles.SUPERADMIN), UsersController.getAllUsers);
+router.get("/get-all-users", routeInfoMessage(), auth(UserRoles.SUPERADMIN), UsersController.getAllUsers);
+
+//! UPDATE CUSTOMER DETAILS
+router.patch("/profile/update", routeInfoMessage(), auth(UserRoles.SUPERADMIN), (req: Request, res: Response, next: NextFunction) => {
+  req.body = UserValidation.updateProfile.parse(JSON.parse(req.body.data));
+  return UsersController.getAllUsers(req, res, next);
+});
 
 export const UserRoutes = router;
