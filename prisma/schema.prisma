@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Prisma schema
+
+model User {
+  userId          String           @id @default(uuid()) // Change uuid() to auto() for the primary key
+  email           String           @unique
+  userName        String           @unique
+  password        String
+  userStatus      UserStatus       @default(ACTIVE)
+  createdAt       DateTime         @default(now()) @db.Timestamptz(0)
+  updatedAt       DateTime         @updatedAt @db.Timestamptz(0)
+  role            UserRoles
+  tenant          Tenant?
+  propertyOwner   PropertyOwner?
+  serviceProvider ServiceProvider?
+
+  @@map("users")
+}
+
+model Tenant {
+  tenantId                             String    @id @default(uuid()) // Change uuid() to auto() for the primary key
+  userId                               String    @unique
+  // personal information
+  firstName                            String
+  lastName                             String
+  profileImage                         String?
+  phoneNumber                          String?
+  dateOfBirth                          DateTime?
+  presentAddress                       String?
+  socialSecurityNumber                 String?
+  drivingLicenseNumber                 String?
+  isCriminalRecord                     Boolean?
+  criminalRecordDescription            String?
+  // income information
+  CurrentEmployerOrBusinessName        String?
+  CurrentEmployerOrBusinessContactInfo String?
+  JobTitle                             String?
+  AnnualSalary                         Int?
+  OtherIncomeSource                    String?
+  CurrentCreditScore                   Int?
+  // other information
+  isSmoker                             Boolean?
+  allergies                            String?
+  isHaveOtherMember                    Boolean?
+  numberOfMember                       Int?
+  isWillingToSignLeasingAgreement      Int?
+  isAnyExtraToMention                  String?
+  // pets
+  isPets                               Boolean?
+  typeOfPets                           String?
+  isPetVaccinated                      Boolean?
+  // rental history
+  prevLandlordName                     String?
+  prevLandlordContactInfo              String?
+  lengthOfPrevTenancy                  String?
+  affordableRentAmount                 Int?
+  leavingReason                        String?
+  isAnyLatePaymentReason               String?
+  // 
+  createdAt                            DateTime  @default(now()) @db.Timestamptz(0)
+  updatedAt                            DateTime  @updatedAt @db.Timestamptz(0)
+  user                                 User      @relation(fields: [userId], references: [userId])
+
+  @@map("tenants")
+}
+
+model PropertyOwner {
+  propertyOwnerId String     @id @default(uuid())
+  firstName       String
+  lastName        String
+  phoneNumber     String?
+  profileImage    String?
+  createdAt       DateTime   @default(now()) @db.Timestamptz(0)
+  updatedAt       DateTime   @updatedAt @db.Timestamptz(0)
+  userId          String     @unique
+  user            User       @relation(fields: [userId], references: [userId])
+  Property        Property[]
+
+  @@map("propertyOwners")
+}
+
+model ServiceProvider {
+  serviceProviderId   String   @id @default(uuid()) // Change uuid() to auto() for the primary key
+  firstName           String
+  lastName            String
+  profileImage        String?
+  phoneNumber         String?
+  companyName         String?
+  companyAddress      String?
+  companyPhoneNumber  String?
+  companyEmailAddress String?
+  userId              String   @unique
+  createdAt           DateTime @default(now()) @db.Timestamptz(0)
+  updatedAt           DateTime @updatedAt @db.Timestamptz(0)
+  user                User     @relation(fields: [userId], references: [userId])
+  Service             Service?
+
+  @@map("serviceProviders")
+}
+
+model Property {
+  propertyId               String        @id @default(uuid())
+  owner                    PropertyOwner @relation(fields: [ownerId], references: [propertyOwnerId])
+  ownerId                  String
+  numOfBed                 Int           @default(1)
+  numOfBath                Int           @default(1)
+  address                  String
+  description              String
+  maintenanceCoveredTenant String
+  maintenanceCoveredOwner  String
+  schools                  String
+  universities             String
+  allowedPets              String
+  images                   String[]
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
+}
+
+model Service {
+  serviceId                 String                   @id @default(uuid())
+  servicePriceRange         String?
+  serviceDescription        String?
+  serviceLocation           String?
+  serviceCancellationPolicy String?
+  serviceAvailability       ServiceAvailabilityEnum?
+  serviceType               ServiceType?
+  ownerId                   String?                  @unique
+  owner                     ServiceProvider?         @relation(fields: [ownerId], references: [serviceProviderId])
+  createdAt                 DateTime                 @default(now())
+  updatedAt                 DateTime                 @updatedAt
+
+  @@map("Services")
+}
+
+// enums
+enum UserStatus {
+  ACTIVE
+  PAUSED
+  SUSPENDED
+}
+
+enum ServiceType {
+  TENANT_SCREENING
+  MAINTENANCE_AND_REPAIR
+  CLEANING
+  PEST_CONTROL
+  LAWN_CARE
+  SECURITY_AND_SAFETY
+  INSURANCE
+  INSPECTION
+  MARKETING
+  TECHNOLOGY
+}
+
+enum ServiceAvailabilityEnum {
+  LOW_PRIORITY
+  MEDIUM_PRIORITY
+  HIGH_PRIORITY
+  ALL_PRIORITIES
+}
+
+enum UserRoles {
+  SUPERADMIN
+  TENANT
+  PROPERTY_OWNER
+  SERVICE_PROVIDER
+}
