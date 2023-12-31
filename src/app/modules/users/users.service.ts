@@ -1,267 +1,106 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import bcrypt from "bcrypt";
-import httpStatus from "http-status";
-import { Secret } from "jsonwebtoken";
-import config from "../../../config";
-import ApiError from "../../../errors/ApiError";
-import { jwtHelpers } from "../../../helpers/jwtHelpers";
+
+import { Prisma, User } from "@prisma/client";
+import { IGenericResponse } from "../../../interfaces/common";
+import { IPaginationOptions } from "../../../interfaces/pagination";
+import { paginationHelpers } from "../../../helpers/paginationHelper";
 import prisma from "../../../shared/prisma";
-import { ILoginUserResponse, IRefreshTokenResponse, IUserCreate, IUserLogin } from "./users.interface";
-import { UserRoles, UserStatus } from "@prisma/client";
-import { userFindUnique } from "./users.utils";
+import { IUserFilterRequest } from "./users.interface";
+import { usersRelationalFields, usersRelationalFieldsMapper, usersSearchableFields } from "./users.constants";
 
-//! customer User Create
+//! GET ALL getAllUsers
+const getAllUsers = async (filters: IUserFilterRequest, options: IPaginationOptions): Promise<IGenericResponse<User[]>> => {
+  const { limit, page, skip } = paginationHelpers.calculatePagination(options);
 
-const createNewUserForCustomer = async (payload: IUserCreate) => {
-  const { password, email } = payload;
-  const hashedPassword = await bcrypt.hash(password, Number(config.bcrypt_salt_rounds));
+  const { searchTerm, ...filterData } = filters;
 
-  const newUser = await prisma.$transaction(async (transactionClient) => {
-    await userFindUnique(email, transactionClient);
+  const andConditions = [];
 
-    const createdUser = await transactionClient.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        role: UserRoles.CUSTOMER,
-        userStatus: UserStatus.ACTIVE,
-      },
-    });
-
-    if (!createdUser) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "User creation failed");
-    }
-
-    const tenantData: any = {
-      firstName: payload.firstName,
-      lastName: payload.lastName,
-      user: {
-        connect: {
-          userId: createdUser.userId,
+  if (searchTerm) {
+    andConditions.push({
+      OR: usersSearchableFields.map((field: any) => ({
+        [field]: {
+          contains: searchTerm,
+          mode: "insensitive",
         },
-      },
-      // profileImage: payload?.profileImage,
-    };
-
-    const tenantUser = await transactionClient.customer.create({
-      data: tenantData,
-      select: {
-        firstName: true,
-        lastName: true,
-        customerId: true,
-        userId: true,
-        user: {
-          select: {
-            email: true,
-            role: true,
-            userStatus: true,
-          },
-        },
-      },
+      })),
     });
+  }
 
-    if (!tenantUser) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Tenant creation failed");
-    }
-
-    return tenantUser;
-  });
-
-  return newUser;
-};
-
-//! super admin User Create
-
-const createSuperAdmin = async (payload: IUserCreate) => {
-  const { password, email, userStatus } = payload;
-  const hashedPassword = await bcrypt.hash(password, Number(config.bcrypt_salt_rounds));
-
-  const result = await prisma.$transaction(async (transactionClient) => {
-    await userFindUnique(email, transactionClient);
-
-    const createdUser = await transactionClient.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        role: UserRoles.SUPERADMIN,
-        userStatus,
-      },
+  if (Object.keys(filterData).length > 0) {
+    andConditions.push({
+      AND: Object.keys(filterData).map((key) => {
+        if (usersRelationalFields.includes(key)) {
+          return {
+            [usersRelationalFieldsMapper[key]]: {
+              id: (filterData as any)[key],
+            },
+          };
+        } else {
+          return {
+            [key]: {
+              equals: (filterData as any)[key],
+            },
+          };
+        }
+      }),
     });
+  }
 
-    if (!createdUser) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "User creation failed");
-    }
+  // @ts-ignore
+  const whereConditions: Prisma.UserWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
 
-    const adminUser = await transactionClient.superAdmin.create({
-      data: {
-        firstName: payload.firstName,
-        lastName: payload.lastName,
-        user: {
-          connect: {
-            userId: createdUser.userId,
-          },
-        },
-      },
-      select: {
-        firstName: true,
-        lastName: true,
-        userId: true,
-        superAdminId: true,
-        user: {
-          select: {
-            email: true,
-            role: true,
-            userStatus: true,
-          },
-        },
-      },
-    });
-
-    if (!adminUser) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Super Admin creation failed");
-    }
-
-    return adminUser;
-  });
-
-  return result;
-};
-
-//login
-const userLogin = async (loginData: IUserLogin): Promise<ILoginUserResponse> => {
-  const { email, password } = loginData;
-
-  const isUserExist = await prisma.user.findFirst({
-    where: {
-      email,
-    },
+  const result = await prisma.user.findMany({
     include: {
       customer: {
         select: {
+          createdAt: true,
+          customerId: true,
           firstName: true,
           lastName: true,
-          customerId: true,
+          phoneNumber: true,
+          profileImage: true,
+          updatedAt: true,
         },
       },
       superAdmin: {
         select: {
+          createdAt: true,
+          superAdminId: true,
           firstName: true,
           lastName: true,
-          superAdminId: true,
+          phoneNumber: true,
+          profileImage: true,
+          updatedAt: true,
         },
       },
     },
+    where: whereConditions,
+    skip,
+    take: limit,
+    orderBy:
+      options.sortBy && options.sortOrder
+        ? { [options.sortBy]: options.sortOrder }
+        : {
+            createdAt: "desc",
+          },
   });
-
-  if (!isUserExist) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "User not found !!");
-  }
-
-  const isPasswordValid = await bcrypt.compare(password, isUserExist?.password);
-
-  if (isUserExist && !isPasswordValid) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, "Password is incorrect !!");
-  }
-
-  const { userId, customer, superAdmin, role, userStatus, email: loggedInEmail } = isUserExist;
-
-  // create access token & refresh token
-  const accessToken = jwtHelpers.createToken(
-    {
-      userId,
-      role,
-      profileId: customer?.customerId || superAdmin?.superAdminId,
-      email: loggedInEmail,
-      userStatus,
-      firstName: customer?.firstName || superAdmin?.firstName,
-      lastName: customer?.lastName || superAdmin?.lastName,
-    },
-    config.jwt.secret as Secret,
-    config.jwt.expires_in as string,
-  );
-  const refreshToken = jwtHelpers.createToken(
-    {
-      userId,
-      role,
-      profileId: customer?.customerId || superAdmin?.superAdminId,
-      email: loggedInEmail,
-      userStatus,
-      firstName: customer?.firstName || superAdmin?.firstName,
-      lastName: customer?.lastName || superAdmin?.lastName,
-    },
-    config.jwt.refresh_secret as Secret,
-    config.jwt.refresh_expires_in as string,
-  );
-
+  const total = await prisma.user.count({
+    where: whereConditions,
+  });
+  const totalPage = Math.ceil(total / limit);
   return {
-    accessToken,
-    refreshToken,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPage,
+    },
+    data: result,
   };
 };
 
-// !refreshToken --------------------------------
-const refreshToken = async (token: string): Promise<IRefreshTokenResponse> => {
-  // ! verify token
-  let verifiedToken = null;
-  try {
-    verifiedToken = jwtHelpers.verifyToken(token, config.jwt.refresh_secret as Secret);
-  } catch (error) {
-    // err
-    throw new ApiError(httpStatus.FORBIDDEN, "Invalid Refresh Token");
-  }
-  //! if user not exist
-  // !checking deleted user's refresh token
-  const { userId } = verifiedToken;
-
-  const isUserExist = await prisma.user.findFirst({
-    where: {
-      userId,
-    },
-    include: {
-      customer: {
-        select: {
-          firstName: true,
-          lastName: true,
-          customerId: true,
-        },
-      },
-      superAdmin: {
-        select: {
-          firstName: true,
-          lastName: true,
-          superAdminId: true,
-        },
-      },
-    },
-  });
-  if (!isUserExist) {
-    throw new ApiError(httpStatus.NOT_FOUND, "User does not exists!!");
-  }
-
-  const { customer, superAdmin, role, userStatus, email: loggedInEmail } = isUserExist;
-  // generate new token
-  const newAccessToken = jwtHelpers.createToken(
-    {
-      userId,
-      role,
-      profileId: customer?.customerId || superAdmin?.superAdminId,
-      email: loggedInEmail,
-      userStatus,
-      firstName: customer?.firstName || superAdmin?.firstName,
-      lastName: customer?.lastName || superAdmin?.lastName,
-    },
-    config.jwt.secret as Secret,
-    config.jwt.expires_in as string,
-  );
-
-  return {
-    accessToken: newAccessToken,
-  };
-};
-
-export const AuthService = {
-  createNewUserForCustomer,
-  createSuperAdmin,
-  userLogin,
-  refreshToken,
+export const UserService = {
+  getAllUsers,
 };

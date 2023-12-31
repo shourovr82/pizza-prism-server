@@ -49,7 +49,7 @@ const getAllCustomers = async (filters: ICustomerFilterRequest, options: IPagina
   }
 
   // @ts-ignore
-  const whereConditions: Prisma.StylesWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
+  const whereConditions: Prisma.CustomerWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
 
   const result = await prisma.customer.findMany({
     include: {
