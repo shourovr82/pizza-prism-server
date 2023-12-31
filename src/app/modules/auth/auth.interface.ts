@@ -6,6 +6,14 @@ export type IUserCreate = {
   email: string;
   password: string;
 };
+export type IUserCreateForAdmin = {
+  firstName: string;
+  lastName: string;
+  userStatus: UserStatus;
+  email: string;
+  password: string;
+  role: UserRoles;
+};
 
 export type IUserProfileResponse = {
   profileId: string;

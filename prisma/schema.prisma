@@ -10,21 +10,20 @@ datasource db {
 // Prisma schema
 
 model User {
-  userId     String      @id @default(uuid())
-  email      String      @unique
+  userId     String     @id @default(uuid())
+  email      String     @unique
   password   String
-  userStatus UserStatus  @default(ACTIVE)
-  createdAt  DateTime    @default(now()) @db.Timestamptz(0)
-  updatedAt  DateTime    @updatedAt @db.Timestamptz(0)
+  userStatus UserStatus @default(ACTIVE)
+  createdAt  DateTime   @default(now()) @db.Timestamptz(0)
+  updatedAt  DateTime   @updatedAt @db.Timestamptz(0)
   role       UserRoles
-  customer   Customer?
-  superAdmin SuperAdmin?
+  profile    Profile?
 
   @@map("users")
 }
 
-model Customer {
-  customerId   String   @id @default(uuid())
+model Profile {
+  profileId    String   @id @default(uuid())
   firstName    String
   lastName     String
   phoneNumber  String?
@@ -35,20 +34,6 @@ model Customer {
   user         User     @relation(fields: [userId], references: [userId])
 
   @@map("customers")
-}
-
-model SuperAdmin {
-  superAdminId String   @id @default(uuid())
-  firstName    String
-  lastName     String
-  phoneNumber  String?
-  profileImage String?
-  createdAt    DateTime @default(now()) @db.Timestamptz(0)
-  updatedAt    DateTime @updatedAt @db.Timestamptz(0)
-  userId       String   @unique
-  user         User     @relation(fields: [userId], references: [userId])
-
-  @@map("superAdmins")
 }
 
 model Service {

@@ -53,28 +53,7 @@ const getAllUsers = async (filters: IUserFilterRequest, options: IPaginationOpti
 
   const result = await prisma.user.findMany({
     include: {
-      customer: {
-        select: {
-          createdAt: true,
-          customerId: true,
-          firstName: true,
-          lastName: true,
-          phoneNumber: true,
-          profileImage: true,
-          updatedAt: true,
-        },
-      },
-      superAdmin: {
-        select: {
-          createdAt: true,
-          superAdminId: true,
-          firstName: true,
-          lastName: true,
-          phoneNumber: true,
-          profileImage: true,
-          updatedAt: true,
-        },
-      },
+      profile: true,
     },
     where: whereConditions,
     skip,
