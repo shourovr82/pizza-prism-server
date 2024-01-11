@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Prisma, User } from "@prisma/client";
+import { Prisma, Profile } from "@prisma/client";
 import { IGenericResponse } from "../../../interfaces/common";
 import { IPaginationOptions } from "../../../interfaces/pagination";
 import { paginationHelpers } from "../../../helpers/paginationHelper";
@@ -10,9 +10,8 @@ import { IUserFilterRequest } from "./users.interface";
 import { usersRelationalFields, usersRelationalFieldsMapper, usersSearchableFields } from "./users.constants";
 
 //! GET ALL getAllUsers
-const getAllUsers = async (filters: IUserFilterRequest, options: IPaginationOptions): Promise<IGenericResponse<User[]>> => {
+const getAllUsers = async (filters: IUserFilterRequest, options: IPaginationOptions): Promise<IGenericResponse<Profile[]>> => {
   const { limit, page, skip } = paginationHelpers.calculatePagination(options);
-
   const { searchTerm, ...filterData } = filters;
 
   const andConditions = [];
@@ -20,10 +19,18 @@ const getAllUsers = async (filters: IUserFilterRequest, options: IPaginationOpti
   if (searchTerm) {
     andConditions.push({
       OR: usersSearchableFields.map((field: any) => ({
-        [field]: {
-          contains: searchTerm,
-          mode: "insensitive",
-        },
+        [field]:
+          field === "user"
+            ? {
+                email: {
+                  contains: searchTerm,
+                  mode: "insensitive",
+                },
+              }
+            : {
+                contains: searchTerm,
+                mode: "insensitive",
+              },
       })),
     });
   }
@@ -32,9 +39,12 @@ const getAllUsers = async (filters: IUserFilterRequest, options: IPaginationOpti
     andConditions.push({
       AND: Object.keys(filterData).map((key) => {
         if (usersRelationalFields.includes(key)) {
+          console.log(key);
           return {
-            [usersRelationalFieldsMapper[key]]: {
-              id: (filterData as any)[key],
+            user: {
+              [usersRelationalFieldsMapper[key]]: {
+                equals: (filterData as any)[key],
+              },
             },
           };
         } else {
@@ -49,11 +59,17 @@ const getAllUsers = async (filters: IUserFilterRequest, options: IPaginationOpti
   }
 
   // @ts-ignore
-  const whereConditions: Prisma.UserWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
+  const whereConditions: Prisma.ProfileWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
 
-  const result = await prisma.user.findMany({
+  const result = await prisma.profile.findMany({
     include: {
-      profile: true,
+      user: {
+        select: {
+          email: true,
+          role: true,
+          userStatus: true,
+        },
+      },
     },
     where: whereConditions,
     skip,
@@ -65,10 +81,12 @@ const getAllUsers = async (filters: IUserFilterRequest, options: IPaginationOpti
             createdAt: "desc",
           },
   });
-  const total = await prisma.user.count({
+
+  const total = await prisma.profile.count({
     where: whereConditions,
   });
   const totalPage = Math.ceil(total / limit);
+
   return {
     meta: {
       page,
