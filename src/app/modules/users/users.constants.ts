@@ -1,8 +1,9 @@
-export const usersFilterableFields: string[] = ["orderNo", "searchTerm", "factoryId", "styleNo", "profileId", "itemId", "createdAt", "startDate", "endDate"];
+export const usersFilterableFields: string[] = ["searchTerm", "role", "userStatus"];
 
-export const usersSearchableFields: string[] = ["styleNo", "factoryId", "styleNo", "profileId", "itemId"];
+export const usersSearchableFields: string[] = ["firstName", "lastName", "phoneNumber", "user"];
 
-export const usersRelationalFields: string[] = ["profileId"];
+export const usersRelationalFields: string[] = ["userStatus", "role"];
 export const usersRelationalFieldsMapper: { [key: string]: string } = {
-  profileId: "profileId",
+  userStatus: "userStatus",
+  role: "role",
 };
