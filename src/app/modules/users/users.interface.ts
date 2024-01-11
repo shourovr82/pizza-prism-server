@@ -1,4 +1,4 @@
-import { UserRoles } from "@prisma/client";
+import { UserRoles, UserStatus } from "@prisma/client";
 
 export type IUserFilterRequest = {
   searchTerm?: string | undefined;
@@ -13,4 +13,5 @@ export type IProfileUpdateRequest = {
   phoneNumber?: string;
   email?: string;
   role?: UserRoles;
+  userStatus?: UserStatus;
 };
