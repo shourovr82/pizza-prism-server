@@ -3,6 +3,7 @@ import { ZodUserRoles, ZodUserStatus } from "../auth/auth.constants";
 
 const updateProfile = z.object({
   email: z.string().optional(),
+  oldProfileImagePath: z.string().optional(),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   password: z.string().optional(),
