@@ -76,6 +76,7 @@ const getAllUsers = async (filters: IUserFilterRequest, options: IPaginationOpti
           userStatus: true,
         },
       },
+      _count: true,
     },
     where: whereConditions,
     skip,

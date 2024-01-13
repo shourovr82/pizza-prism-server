@@ -36,6 +36,8 @@ const createNewUser = async (payload: IUserCreate) => {
       data: {
         firstName: payload.firstName,
         lastName: payload.lastName,
+        phoneNumber: payload.phoneNumber,
+        gender: payload.gender,
         user: {
           connect: {
             userId: createdUser.userId,
@@ -92,6 +94,8 @@ const createOtherUser = async (payload: IUserCreateForAdmin) => {
       data: {
         firstName: payload.firstName,
         lastName: payload.lastName,
+        phoneNumber: payload.phoneNumber,
+        gender: payload.gender,
         user: {
           connect: {
             userId: createdUser.userId,
@@ -156,8 +160,6 @@ const userLogin = async (loginData: IUserLogin): Promise<ILoginUserResponse> => 
       profileId: profile?.profileId,
       email: loggedInEmail,
       userStatus,
-      firstName: profile?.firstName,
-      lastName: profile?.lastName,
     },
     config.jwt.secret as Secret,
     config.jwt.expires_in as string,
@@ -169,8 +171,6 @@ const userLogin = async (loginData: IUserLogin): Promise<ILoginUserResponse> => 
       profileId: profile?.profileId,
       email: loggedInEmail,
       userStatus,
-      firstName: profile?.firstName,
-      lastName: profile?.lastName,
     },
     config.jwt.refresh_secret as Secret,
     config.jwt.refresh_expires_in as string,
@@ -217,8 +217,6 @@ const refreshToken = async (token: string): Promise<IRefreshTokenResponse> => {
       profileId: profile?.profileId,
       email: loggedInEmail,
       userStatus,
-      firstName: profile?.firstName,
-      lastName: profile?.lastName,
     },
     config.jwt.secret as Secret,
     config.jwt.expires_in as string,

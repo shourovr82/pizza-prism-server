@@ -1,10 +1,12 @@
-import { UserRoles, UserStatus } from "@prisma/client";
+import { ProfileGender, UserRoles, UserStatus } from "@prisma/client";
 export type IUserCreate = {
   firstName: string;
   lastName: string;
   userStatus: UserStatus;
   email: string;
   password: string;
+  phoneNumber: string;
+  gender: ProfileGender;
 };
 export type IUserCreateForAdmin = {
   firstName: string;
@@ -13,6 +15,8 @@ export type IUserCreateForAdmin = {
   email: string;
   password: string;
   role: UserRoles;
+  phoneNumber: string;
+  gender: ProfileGender;
 };
 
 export type IUserProfileResponse = {
