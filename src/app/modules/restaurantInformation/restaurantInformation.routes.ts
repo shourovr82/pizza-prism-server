@@ -3,7 +3,7 @@ import auth from "../../middlewares/auth";
 import { UserRoles } from "@prisma/client";
 import { RestaurantController } from "./restaurantInformation.controller";
 import { RestaurantValidation } from "./restaurantInformation.validation";
-import { FileUploadHelper } from "../../../helpers/FileUploadHelper";
+import { FileUploadHelper } from "../../../helpers/fileUpload/FileUploadHelper";
 
 const router = express.Router();
 // update

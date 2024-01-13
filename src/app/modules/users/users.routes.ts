@@ -4,7 +4,7 @@ import { UserRoles } from "@prisma/client";
 import { UsersController } from "./users.controller";
 import { UserValidation } from "./user.validation";
 import routeInfoMessage from "../../middlewares/routeInfoMessage";
-import { FileUploadHelper } from "../../../helpers/FileUploadHelper";
+import { FileUploadHelper } from "../../../helpers/fileUpload/FileUploadHelper";
 
 const router = express.Router();
 

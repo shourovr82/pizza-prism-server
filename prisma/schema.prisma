@@ -91,6 +91,7 @@ model FoodReview {
 model FoodMenu {
   foodMenuId      String     @id @default(uuid())
   menuName        String
+  menuImage       String
   menuDescription String?
   foodItems       FoodItem[]
   createdAt       DateTime   @default(now()) @db.Timestamptz(0)
