@@ -21,9 +21,13 @@ const create_required_directories = () => {
     fs.mkdirSync("./data/uploads/users");
   }
 
-  // Create property directory
+  // Create food menu directory
   if (!fs.existsSync("./data/uploads/food-menu")) {
     fs.mkdirSync("./data/uploads/food-menu");
+  }
+  // Create food item directory
+  if (!fs.existsSync("./data/uploads/food-items")) {
+    fs.mkdirSync("./data/uploads/food-items");
   }
 
   // Create backup directory where database backup file will be stored.

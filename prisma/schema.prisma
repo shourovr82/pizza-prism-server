@@ -103,6 +103,7 @@ model FoodMenu {
 model FoodItem {
   foodItemId        String           @id @default(uuid())
   foodName          String
+  foodImage         String
   description       String?
   prevPrice         Int?
   currentPrice      Int?

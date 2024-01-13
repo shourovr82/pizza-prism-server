@@ -19,3 +19,13 @@ export const foodMenuStorage = multer.diskStorage({
     cb(null, uniqueFilename);
   },
 });
+// ! food item storage
+export const foodItemStorage = multer.diskStorage({
+  destination: function (req, file, callback) {
+    callback(null, "data/uploads/food-items/");
+  },
+  filename: function (req, file, cb) {
+    const uniqueFilename = Date.now() + "-" + file.originalname;
+    cb(null, uniqueFilename);
+  },
+});
