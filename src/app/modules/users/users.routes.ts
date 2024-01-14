@@ -4,7 +4,7 @@ import { UserRoles } from "@prisma/client";
 import { UsersController } from "./users.controller";
 import { UserValidation } from "./user.validation";
 import routeInfoMessage from "../../middlewares/routeInfoMessage";
-import { FileUploadHelper } from "../../../helpers/FileUploadHelper";
+import { FileUploadHelper } from "../../../helpers/fileUpload/FileUploadHelper";
 
 const router = express.Router();
 
@@ -12,9 +12,7 @@ const router = express.Router();
 router.get("/get-all-users", routeInfoMessage(), auth(UserRoles.SUPERADMIN), UsersController.getAllUsers);
 
 //! UPDATE USER DETAILS
-// router.patch("/profile/update/:profileId", routeInfoMessage(), auth(UserRoles.SUPERADMIN), (req: Request, res: Response, next: NextFunction) => {
-//   console.log(req);
-// });
+
 // update profile details
 router.patch("/update-profile/:profileId", auth(UserRoles.SUPERADMIN), FileUploadHelper.uploadProfileImage.single("file"), (req: Request, res: Response, next: NextFunction) => {
   req.body = UserValidation.updateProfile.parse(JSON.parse(req.body.data));

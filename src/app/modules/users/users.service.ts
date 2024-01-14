@@ -76,6 +76,7 @@ const getAllUsers = async (filters: IUserFilterRequest, options: IPaginationOpti
           userStatus: true,
         },
       },
+      _count: true,
     },
     where: whereConditions,
     skip,
@@ -109,7 +110,7 @@ const updateProfileDetails = async (profileId: string, req: Request) => {
   const profileImage: IUploadFile = req.file as any;
   const profileImagePath = profileImage?.path?.substring(13);
 
-  const { firstName, lastName, email, phoneNumber, role, oldProfileImagePath, ...updates } = req.body as IProfileUpdateRequest;
+  const { firstName, lastName, email, phoneNumber, role, userStatus, oldProfileImagePath, ...updates } = req.body as IProfileUpdateRequest;
 
   const profileReqData: any = {
     firstName,
@@ -143,15 +144,17 @@ const updateProfileDetails = async (profileId: string, req: Request) => {
       });
 
       if (isEmailExist) throw new ApiError(httpStatus.CONFLICT, "Email is already used");
-      else
+      else {
         profileReqData.user = {
           update: {
             email,
           },
         };
+      }
     }
     // if role
     if (role !== undefined && role !== null) profileReqData.user = { update: { role } };
+    if (userStatus !== undefined && userStatus !== null) profileReqData.user = { update: { userStatus } };
 
     //! deleting old  Image
     if (profileImagePath) deleteOldImage(oldProfileImagePath, profileImagePath);

@@ -23,59 +23,188 @@ model User {
 }
 
 model Profile {
-  profileId    String   @id @default(uuid())
-  firstName    String
-  lastName     String
-  phoneNumber  String?
-  profileImage String?
-  createdAt    DateTime @default(now()) @db.Timestamptz(0)
-  updatedAt    DateTime @updatedAt @db.Timestamptz(0)
-  userId       String   @unique
-  user         User     @relation(fields: [userId], references: [userId])
+  profileId        String        @id @default(uuid())
+  firstName        String
+  lastName         String
+  phoneNumber      String
+  parmanentAddress String?
+  currentAdress    String?
+  postalCode       String?
+  dateOfBirth      DateTime?
+  gender           ProfileGender
+  profileImage     String?
+  createdAt        DateTime      @default(now()) @db.Timestamptz(0)
+  updatedAt        DateTime      @updatedAt @db.Timestamptz(0)
+  userId           String        @unique
+  user             User          @relation(fields: [userId], references: [userId])
+  foodReviews      FoodReview[]
+  orders           Order[]
 
-  @@map("customers")
+  @@map("profiles")
 }
 
-model Service {
-  serviceId                 String                   @id @default(uuid())
-  servicePriceRange         String?
-  serviceDescription        String?
-  serviceLocation           String?
-  serviceCancellationPolicy String?
-  serviceAvailability       ServiceAvailabilityEnum?
-  serviceType               ServiceType?
-  ownerId                   String?                  @unique
-  createdAt                 DateTime                 @default(now())
-  updatedAt                 DateTime                 @updatedAt
+model RestaurantInformation {
+  id                       Int      @id @default(1)
+  restaurantName           String?
+  restaurantEmail          String?
+  restaurantSecondaryEmail String?
+  contactNumber            String?
+  emergencyContactNumber   String?
+  restaurantLogo           String?
+  restaurantFacebook       String?
+  restaurantInstagram      String?
+  restaurantDescription    String?
+  createdAt                DateTime @default(now()) @db.Timestamptz(0)
+  updatedAt                DateTime @updatedAt @db.Timestamptz(0)
 
-  @@map("Services")
+  @@map("restaurant_information")
+}
+
+model NutritionalInfo {
+  nutritionalInfoId Int       @id @default(autoincrement())
+  calories          Int
+  protein           Int
+  carbohydrates     Int
+  fat               Int
+  foodItemId        String?   @unique
+  foodItem          FoodItem? @relation(fields: [foodItemId], references: [foodItemId])
+  createdAt         DateTime  @default(now()) @db.Timestamptz(0)
+  updatedAt         DateTime  @updatedAt @db.Timestamptz(0)
+
+  @@map("nutritional_info")
+}
+
+model FoodReview {
+  reviewId   String   @id @default(uuid())
+  rating     Int
+  comment    String
+  foodItemId String
+  createdAt  DateTime @default(now()) @db.Timestamptz(0)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(0)
+  foodItem   FoodItem @relation(fields: [foodItemId], references: [foodItemId])
+  profileId  String
+  profile    Profile  @relation(fields: [profileId], references: [profileId])
+
+  @@map("food_reviews")
+}
+
+model FoodMenu {
+  foodMenuId      String     @id @default(uuid())
+  menuName        String
+  menuImage       String
+  menuDescription String?
+  foodItems       FoodItem[]
+  createdAt       DateTime   @default(now()) @db.Timestamptz(0)
+  updatedAt       DateTime   @updatedAt @db.Timestamptz(0)
+
+  @@map("food_menus")
+}
+
+model FoodItem {
+  foodItemId        String           @id @default(uuid())
+  foodName          String
+  foodImage         String
+  description       String?
+  prevPrice         Int?
+  currentPrice      Int?
+  availableQuantity Int
+  availability      Boolean          @default(true)
+  foodMenuId        String
+  foodMenu          FoodMenu         @relation(fields: [foodMenuId], references: [foodMenuId])
+  createdAt         DateTime         @default(now()) @db.Timestamptz(0)
+  updatedAt         DateTime         @updatedAt @db.Timestamptz(0)
+  reviews           FoodReview[]
+  nutritionalInfo   NutritionalInfo?
+  orderItems        OrderItem[]
+
+  @@map("food_items")
+}
+
+model Order {
+  orderId      String        @id @default(uuid())
+  totalAmount  Int
+  orderNumber  Int
+  status       OrderStatus   @default(PLACED)
+  createdAt    DateTime      @default(now()) @db.Timestamptz(0)
+  updatedAt    DateTime      @updatedAt @db.Timestamptz(0)
+  address      String
+  profileId    String
+  profile      Profile       @relation(fields: [profileId], references: [profileId])
+  orderItems   OrderItem[]
+  deliveryInfo DeliveryInfo?
+  paymentInfo  PaymentInfo?
+
+  @@map("food_orders")
+}
+
+model OrderItem {
+  orderItemId String   @id @default(uuid())
+  quantity    Int
+  foodItemId  String
+  order       Order    @relation(fields: [orderId], references: [orderId])
+  orderId     String
+  foodItem    FoodItem @relation(fields: [foodItemId], references: [foodItemId])
+  createdAt   DateTime @default(now()) @db.Timestamptz(0)
+
+  @@map("order_items")
+}
+
+model DeliveryInfo {
+  deliveryInfoId String         @id @default(uuid())
+  deliveryDate   DateTime
+  deliveryStatus DeliveryStatus @default(PENDING)
+  orderId        String?        @unique
+  order          Order?         @relation(fields: [orderId], references: [orderId])
+  createdAt      DateTime       @default(now()) @db.Timestamptz(0)
+  updatedAt      DateTime       @updatedAt @db.Timestamptz(0)
+
+  @@map("delivery_info")
+}
+
+model PaymentInfo {
+  paymentInfoId String        @id @default(uuid())
+  paymentDate   DateTime
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentMethod PaymentMethod
+  orderId       String?       @unique
+  order         Order?        @relation(fields: [orderId], references: [orderId])
+  createdAt     DateTime      @default(now()) @db.Timestamptz(0)
+  updatedAt     DateTime      @updatedAt @db.Timestamptz(0)
+
+  @@map("payment_info")
+}
+
+// !-------------------- enums
+enum DeliveryStatus {
+  PENDING
+  DISPATCHED
+  DELIVERED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+enum PaymentMethod {
+  DEBIT
+  CREDIT
+  CASH
 }
 
 // enums
+enum OrderStatus {
+  PLACED
+  PROCESSING
+  DELIVERED
+  CANCELED
+}
+
 enum UserStatus {
   ACTIVE
   PAUSED
   SUSPENDED
-}
-
-enum ServiceType {
-  TENANT_SCREENING
-  MAINTENANCE_AND_REPAIR
-  CLEANING
-  PEST_CONTROL
-  LAWN_CARE
-  SECURITY_AND_SAFETY
-  INSURANCE
-  INSPECTION
-  MARKETING
-  TECHNOLOGY
-}
-
-enum ServiceAvailabilityEnum {
-  LOW_PRIORITY
-  MEDIUM_PRIORITY
-  HIGH_PRIORITY
-  ALL_PRIORITIES
 }
 
 enum UserRoles {
@@ -83,4 +212,9 @@ enum UserRoles {
   CUSTOMER
   DELIVERYMAN
   CASHIER
+}
+
+enum ProfileGender {
+  MALE
+  FEMALE
 }
