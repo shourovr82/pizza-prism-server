@@ -19,8 +19,13 @@ const createFoodItem = z.object({
 });
 const updateFoodItem = z.object({
   oldProfileImagePath: z.string().optional(),
-  menuName: z.string().optional(),
-  menuDescription: z.string().optional(),
+  foodName: z.string().optional(),
+  prevPrice: z.number().optional(),
+  currentPrice: z.number().optional(),
+  availableQuantity: z.number().optional(),
+  foodMenuId: z.string().optional(),
+  description: z.string().optional(),
+  availability: z.boolean().optional(),
 });
 
 // !-----

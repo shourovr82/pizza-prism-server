@@ -14,6 +14,8 @@ router.post("/create-food-item", auth(UserRoles.SUPERADMIN), FileUploadHelper.up
 });
 //! GET ALL food items
 router.get("/get-all-food-items", routeInfoMessage(), FoodItemController.getAllFoodItem);
+//! GET ALL food items
+router.get("/get-single-food-item/:foodItemId", routeInfoMessage(), FoodItemController.getSingleFoodItemsDetails);
 
 //! UPDATE FOOD item DETAILS
 

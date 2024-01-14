@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { FoodMenu, Prisma } from "@prisma/client";
+import { FoodItem, Prisma } from "@prisma/client";
 import { IGenericResponse } from "../../../interfaces/common";
 import { IPaginationOptions } from "../../../interfaces/pagination";
 import { paginationHelpers } from "../../../helpers/paginationHelper";
@@ -13,7 +13,7 @@ import { deleteOldImage } from "../../../helpers/deleteOldImage";
 import httpStatus from "http-status";
 import { IFoodItemCreateRequest, IFoodItemCreateRes, IFoodItemUpdateRequest, IUserFilterRequest } from "./foodItems.interface";
 import { foodItemRelationalFields, foodItemRelationalFieldsMapper, foodItemSearchableFields } from "./foodItems.constants";
-import { updateFoodMenuData } from "./foodItems.utils";
+import { updateFoodItemData } from "./foodItems.utils";
 // ! create food menu
 
 const createFoodItems = async (req: Request) => {
@@ -53,7 +53,7 @@ const createFoodItems = async (req: Request) => {
   return result;
 };
 //! GET ALL getAllFoodMenu
-const getAllFoodItems = async (filters: IUserFilterRequest, options: IPaginationOptions): Promise<IGenericResponse<FoodMenu[]>> => {
+const getAllFoodItems = async (filters: IUserFilterRequest, options: IPaginationOptions): Promise<IGenericResponse<FoodItem[]>> => {
   const { limit, page, skip } = paginationHelpers.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
@@ -94,9 +94,9 @@ const getAllFoodItems = async (filters: IUserFilterRequest, options: IPagination
   }
 
   // @ts-ignore
-  const whereConditions: Prisma.FoodMenuWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
+  const whereConditions: Prisma.FoodItemWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
 
-  const result = await prisma.foodMenu.findMany({
+  const result = await prisma.foodItem.findMany({
     include: {
       _count: true,
     },
@@ -111,7 +111,7 @@ const getAllFoodItems = async (filters: IUserFilterRequest, options: IPagination
           },
   });
 
-  const total = await prisma.foodMenu.count({
+  const total = await prisma.foodItem.count({
     where: whereConditions,
   });
   const totalPage = Math.ceil(total / limit);
@@ -126,33 +126,61 @@ const getAllFoodItems = async (filters: IUserFilterRequest, options: IPagination
     data: result,
   };
 };
+// ! get single food Item
+
+const getSingleFoodItemsDetails = async (foodItemId: string) => {
+  //!
+  const result = await prisma.$transaction(async (transactionClient) => {
+    // ! is Exist item
+    const isExistFoodItem = await transactionClient.foodItem.findUnique({
+      where: {
+        foodItemId,
+      },
+      include: {
+        _count: true,
+        foodMenu: true,
+        nutritionalInfo: true,
+        reviews: true,
+      },
+    });
+
+    if (!isExistFoodItem) throw new ApiError(httpStatus.NOT_FOUND, "Food Item Not Found !!");
+
+    return isExistFoodItem;
+  });
+  return result;
+};
 // ! update food menu Details
 
 const updateFoodItemsDetails = async (foodItemId: string, req: Request) => {
   const foodItemImage: IUploadFile = req.file as any;
   const foodItemImagePath = foodItemImage?.path?.substring(13);
 
-  const { oldFoodImagePath, ...updates } = req.body as IFoodItemUpdateRequest;
-
-  const foodMenuReqData: any = {
-    foodImage: foodItemImagePath,
-    ...updates,
-  };
+  const { oldFoodImagePath, availability, ...updates } = req.body as IFoodItemUpdateRequest;
 
   //!
   const result = await prisma.$transaction(async (transactionClient) => {
+    // ! is Exist item
     const isExistFoodItem = await transactionClient.foodItem.findUnique({
       where: {
         foodItemId,
       },
     });
 
-    if (!isExistFoodItem) throw new ApiError(httpStatus.NOT_FOUND, "Food Menu Not Found !!");
+    if (!isExistFoodItem) throw new ApiError(httpStatus.NOT_FOUND, "Food Item Not Found !!");
     //! deleting old  Image
     if (foodItemImagePath && oldFoodImagePath) deleteOldImage(oldFoodImagePath, foodItemImagePath);
 
     // updated data from request
-    const newUpdatedData: Partial<IFoodItemUpdateRequest> = updateFoodMenuData(foodMenuReqData);
+    const foodItemUpdateReqData: any = {
+      availability,
+      foodImage: foodItemImagePath,
+      ...updates,
+    };
+
+    if (availability === false) foodItemUpdateReqData["availableQuantity"] = 0;
+
+    const newUpdatedData: Partial<IFoodItemUpdateRequest> = updateFoodItemData(foodItemUpdateReqData);
 
     // ! updating
     const res = await transactionClient.foodItem.update({
@@ -169,4 +197,4 @@ const updateFoodItemsDetails = async (foodItemId: string, req: Request) => {
   return result;
 };
 
-export const FoodItemService = { createFoodItems, getAllFoodItems, updateFoodItemsDetails };
+export const FoodItemService = { createFoodItems, getAllFoodItems, updateFoodItemsDetails, getSingleFoodItemsDetails };
