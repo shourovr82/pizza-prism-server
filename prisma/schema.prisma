@@ -121,18 +121,19 @@ model FoodItem {
 }
 
 model Order {
-  orderId      String        @id @default(uuid())
-  totalAmount  Int
-  orderNumber  Int
-  status       OrderStatus   @default(PLACED)
-  createdAt    DateTime      @default(now()) @db.Timestamptz(0)
-  updatedAt    DateTime      @updatedAt @db.Timestamptz(0)
-  address      String
-  profileId    String
-  profile      Profile       @relation(fields: [profileId], references: [profileId])
-  orderItems   OrderItem[]
-  deliveryInfo DeliveryInfo?
-  paymentInfo  PaymentInfo?
+  orderId       String        @id @default(uuid())
+  totalAmount   Int
+  orderNumber   String
+  address       String
+  importantText String?
+  status        OrderStatus   @default(PLACED)
+  createdAt     DateTime      @default(now()) @db.Timestamptz(0)
+  updatedAt     DateTime      @updatedAt @db.Timestamptz(0)
+  profileId     String
+  profile       Profile       @relation(fields: [profileId], references: [profileId])
+  orderItems    OrderItem[]
+  deliveryInfo  DeliveryInfo?
+  paymentInfo   PaymentInfo?
 
   @@map("food_orders")
 }
@@ -140,9 +141,9 @@ model Order {
 model OrderItem {
   orderItemId String   @id @default(uuid())
   quantity    Int
-  foodItemId  String
-  order       Order    @relation(fields: [orderId], references: [orderId])
   orderId     String
+  order       Order    @relation(fields: [orderId], references: [orderId])
+  foodItemId  String
   foodItem    FoodItem @relation(fields: [foodItemId], references: [foodItemId])
   createdAt   DateTime @default(now()) @db.Timestamptz(0)
 
@@ -163,7 +164,7 @@ model DeliveryInfo {
 
 model PaymentInfo {
   paymentInfoId String        @id @default(uuid())
-  paymentDate   DateTime
+  paymentDate   DateTime?
   paymentStatus PaymentStatus @default(PENDING)
   paymentMethod PaymentMethod
   orderId       String?       @unique

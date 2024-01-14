@@ -5,6 +5,7 @@ import { UserRoutes } from "../modules/users/users.routes";
 import { RestaurantRoutes } from "../modules/restaurantInformation/restaurantInformation.routes";
 import { FoodMenuRoutes } from "../modules/foodMenu/foodMenu.routes";
 import { FoodItemsRoutes } from "../modules/foodItems/foodItems.routes";
+import { FoodOrderRoutes } from "../modules/foodOrders/orders.routes";
 
 const router = express.Router();
 
@@ -28,6 +29,10 @@ const moduleRoutes = [
   {
     path: "/food-items",
     route: FoodItemsRoutes,
+  },
+  {
+    path: "/food-orders",
+    route: FoodOrderRoutes,
   },
 ];
 
