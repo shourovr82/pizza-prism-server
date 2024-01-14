@@ -1,4 +1,4 @@
-import { UserRoles, UserStatus } from '@prisma/client';
+import { UserRoles, UserStatus } from "@prisma/client";
 
 export type IRequestUser = {
   role: UserRoles;
@@ -6,8 +6,6 @@ export type IRequestUser = {
   profileId: string;
   email: string;
   userStatus: UserStatus;
-  firstName: string;
-  lastName: string;
   iat: number;
   exp: number;
 };
