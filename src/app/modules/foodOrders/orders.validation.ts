@@ -10,7 +10,7 @@ const orderItemSchema = z.object({
   }),
 });
 
-const createNewFoodOrder = z.object({
+const createNewOrder = z.object({
   body: z.object({
     orderNumber: z.string({
       required_error: "orderNumber is required",
@@ -36,5 +36,5 @@ const createNewFoodOrder = z.object({
 
 // !-----
 export const FoodOrderValidation = {
-  createNewFoodOrder,
+  createNewOrder,
 };

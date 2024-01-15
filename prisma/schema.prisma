@@ -27,8 +27,8 @@ model Profile {
   firstName        String
   lastName         String
   phoneNumber      String
-  parmanentAddress String?
-  currentAdress    String?
+  permanentAddress String?
+  currentAddress   String?
   postalCode       String?
   dateOfBirth      DateTime?
   gender           ProfileGender
