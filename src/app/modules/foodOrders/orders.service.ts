@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { FoodItem, Prisma } from "@prisma/client";
+import { Order, Prisma } from "@prisma/client";
 import { IGenericResponse } from "../../../interfaces/common";
 import { IPaginationOptions } from "../../../interfaces/pagination";
 import { paginationHelpers } from "../../../helpers/paginationHelper";
@@ -11,12 +11,12 @@ import ApiError from "../../../errors/ApiError";
 import { deleteOldImage } from "../../../helpers/deleteOldImage";
 import httpStatus from "http-status";
 import { IFoodItemUpdateRequest, IFoodOrderCreateRequest, IUserFilterRequest } from "./orders.interface";
-import { foodItemRelationalFields, foodItemRelationalFieldsMapper, foodItemSearchableFields } from "./orders.constants";
+import { ordersRelationalFields, ordersRelationalFieldsMapper, ordersSearchableFields } from "./orders.constants";
 import { calculateTotalAmount, updateFoodItemData } from "./orders.utils";
-// ! create food menu
 
+// ! create new order
 const createNewFoodOrder = async (profileId: string, payload: IFoodOrderCreateRequest) => {
-  const { orderItems, importantText, paymentMethod, ...updates } = payload;
+  const { orderItems, paymentMethod, ...updates } = payload;
   const orderItemIds = orderItems?.map((orderItem) => orderItem?.foodItemId);
 
   const result = await prisma.$transaction(async (transactionClient) => {
@@ -39,8 +39,6 @@ const createNewFoodOrder = async (profileId: string, payload: IFoodOrderCreateRe
     const orderCreateData: any = {
       ...updates,
     };
-
-    if (importantText !== undefined || payload !== null) orderCreateData["importantText"] = importantText;
 
     const newOrderCreating = await transactionClient.order.create({
       data: {
@@ -87,8 +85,8 @@ const createNewFoodOrder = async (profileId: string, payload: IFoodOrderCreateRe
   return result;
 };
 
-//! GET ALL getAllFood Orders for admin
-const getAllFoodOrders = async (filters: IUserFilterRequest, options: IPaginationOptions): Promise<IGenericResponse<FoodItem[]>> => {
+//! GET ALL  Orders for admin
+const getAllOrders = async (filters: IUserFilterRequest, options: IPaginationOptions): Promise<IGenericResponse<Order[]>> => {
   const { limit, page, skip } = paginationHelpers.calculatePagination(options);
   const { searchTerm, ...filterData } = filters;
 
@@ -96,7 +94,7 @@ const getAllFoodOrders = async (filters: IUserFilterRequest, options: IPaginatio
 
   if (searchTerm) {
     andConditions.push({
-      OR: foodItemSearchableFields.map((field: any) => ({
+      OR: ordersSearchableFields.map((field: any) => ({
         [field]: {
           contains: searchTerm,
           mode: "insensitive",
@@ -108,11 +106,11 @@ const getAllFoodOrders = async (filters: IUserFilterRequest, options: IPaginatio
   if (Object.keys(filterData).length > 0) {
     andConditions.push({
       AND: Object.keys(filterData).map((key) => {
-        if (foodItemRelationalFields.includes(key)) {
+        if (ordersRelationalFields.includes(key)) {
           console.log(key);
           return {
             user: {
-              [foodItemRelationalFieldsMapper[key]]: {
+              [ordersRelationalFieldsMapper[key]]: {
                 equals: (filterData as any)[key],
               },
             },
@@ -129,11 +127,26 @@ const getAllFoodOrders = async (filters: IUserFilterRequest, options: IPaginatio
   }
 
   // @ts-ignore
-  const whereConditions: Prisma.FoodItemWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
+  const whereConditions: Prisma.OrderWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
 
-  const result = await prisma.foodItem.findMany({
+  const result = await prisma.order.findMany({
     include: {
       _count: true,
+      deliveryInfo: true,
+
+      paymentInfo: true,
+      profile: {
+        select: {
+          firstName: true,
+          lastName: true,
+          gender: true,
+          currentAdress: true,
+          parmanentAddress: true,
+          profileImage: true,
+          phoneNumber: true,
+          postalCode: true,
+        },
+      },
     },
     where: whereConditions,
     skip,
@@ -146,7 +159,7 @@ const getAllFoodOrders = async (filters: IUserFilterRequest, options: IPaginatio
           },
   });
 
-  const total = await prisma.foodItem.count({
+  const total = await prisma.order.count({
     where: whereConditions,
   });
   const totalPage = Math.ceil(total / limit);
@@ -161,27 +174,54 @@ const getAllFoodOrders = async (filters: IUserFilterRequest, options: IPaginatio
     data: result,
   };
 };
-// ! get single food Item
+// ! get my food ordered
 
-const getSingleFoodItemsDetails = async (foodItemId: string) => {
+const getMyFoodOrdered = async (profileId: string) => {
   //!
   const result = await prisma.$transaction(async (transactionClient) => {
-    // ! is Exist item
-    const isExistFoodItem = await transactionClient.foodItem.findUnique({
+    // !
+    const orderedFood = await transactionClient.order.findMany({
       where: {
-        foodItemId,
+        profileId,
       },
       include: {
         _count: true,
-        foodMenu: true,
-        nutritionalInfo: true,
-        reviews: true,
+        deliveryInfo: true,
+        orderItems: {
+          include: {
+            foodItem: true,
+          },
+        },
+        paymentInfo: true,
       },
     });
 
-    if (!isExistFoodItem) throw new ApiError(httpStatus.NOT_FOUND, "Food Item Not Found !!");
+    return orderedFood;
+  });
+  return result;
+};
+// ! get single  Order
 
-    return isExistFoodItem;
+const getSingleOrderDetails = async (orderId: string): Promise<Order> => {
+  //!
+  const result = await prisma.$transaction(async (transactionClient) => {
+    // ! is Exist order
+    const isExistOrder = await transactionClient.order.findUnique({
+      where: {
+        orderId,
+      },
+      include: {
+        _count: true,
+        deliveryInfo: true,
+        orderItems: true,
+        paymentInfo: true,
+        profile: true,
+      },
+    });
+
+    if (!isExistOrder) throw new ApiError(httpStatus.NOT_FOUND, "Order Details Not Found !!");
+
+    return isExistOrder;
   });
   return result;
 };
@@ -232,4 +272,4 @@ const updateFoodItemsDetails = async (foodItemId: string, req: Request) => {
   return result;
 };
 
-export const FoodOrderService = { createNewFoodOrder, getAllFoodOrders, updateFoodItemsDetails, getSingleFoodItemsDetails };
+export const FoodOrderService = { createNewFoodOrder, getAllOrders, updateFoodItemsDetails, getSingleOrderDetails, getMyFoodOrdered };
